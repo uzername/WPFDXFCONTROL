@@ -32,9 +32,10 @@ namespace WpfDXFViewer
                 if (String.IsNullOrEmpty(this.PathToDXF.Text) == false)
                 {
                     this.DXFrenderPlane.processDxfFile(this.PathToDXF.Text);
+                    this.DXFrenderPlane.fitGraphicalEntitiesToView();
                     List<Double> boundValues = this.DXFrenderPlane.getActiveBoundBoxValues();
-                    LowerCoordBoundBox.Content = boundValues[0].ToString("#.####") + ";" + boundValues[1].ToString("#.####");
-                    UpperCoordBoundBox.Content = boundValues[2].ToString("#.####") + ";" + boundValues[3].ToString("#.####");
+                    LowerCoordBoundBox.Content = boundValues[0].ToString("0.####") + ";" + boundValues[1].ToString("0.####");
+                    UpperCoordBoundBox.Content = boundValues[2].ToString("0.####") + ";" + boundValues[3].ToString("0.####");
                     
                 }
             } catch (Exception e2)
