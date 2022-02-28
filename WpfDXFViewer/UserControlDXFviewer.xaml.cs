@@ -30,6 +30,85 @@ namespace WpfDXFViewer
         private DxfBoundingBox currentBBox;
         private DxfFile dxfFile = null;
         /// <summary>
+        /// CALL THIS AFTER you have parsed DXF file!
+        /// </summary>
+        internal void renderCurrentlyProcessedFile()
+        {
+            if (dxfFile.Entities.Count == 0)
+            {
+                // parse dxf file first
+                return;
+            }
+            // calculation of appropriate scale. TODO - move to subroutine and include rotation
+            List<Double> boundBox = getActiveBoundBoxValues();
+            double minX = boundBox[0];
+            double minY = boundBox[1];
+            double maxX = boundBox[2];
+            double maxY = boundBox[3];
+            double W = Math.Abs(minX - maxX);
+            double H = Math.Abs(minY - maxY);
+            double scaleX = this.ActualWidth / W;
+            double scaleY = this.ActualHeight / H;
+            double usedScale = W > H ? scaleX : scaleY;
+            double usedCenterX = W / 2;
+            double usedCenterY = H / 2;
+            double graphPlaneCenterX = this.renderBaseDXF.ActualWidth / 2;
+            double graphPlaneCenterY = this.renderBaseDXF.ActualHeight / 2;
+            // first - rotate, then - scale, after it - translate
+            // mirroring may be after rotation or translation.
+            // potentially mirroring may be achieved together with scaling, by setting a negative sign
+            ScaleTransform scaleOperation = new ScaleTransform(usedScale, usedScale, usedCenterX, usedCenterY);
+            TranslateTransform translocateOperation = new TranslateTransform(graphPlaneCenterX-usedCenterX,graphPlaneCenterY-usedCenterY);
+            TransformGroup groupOperation = new TransformGroup();
+            groupOperation.Children.Add(scaleOperation);
+            groupOperation.Children.Add(translocateOperation);
+
+            this.renderBaseDXF.Children.Clear();
+            foreach (DxfEntity entity in dxfFile.Entities)
+            {
+                DxfColor entityColor = entity.Color;
+
+                switch (entity.EntityType)
+                {
+                    case DxfEntityType.Line:
+                        {
+                            DxfLine lineDxf = (DxfLine)entity;
+                            Line lineGraphic = new Line();
+                            lineGraphic.X1 = lineDxf.P1.X - minX;
+                            lineGraphic.Y1 = lineDxf.P1.Y - minY;
+                            lineGraphic.X2 = lineDxf.P2.X - minX;
+                            lineGraphic.Y2 = lineDxf.P2.Y - minY;
+                            lineGraphic.Stroke = Brushes.Black;
+                            lineGraphic.StrokeThickness = 1 / usedScale;
+                            lineGraphic.RenderTransform = groupOperation;
+                            
+                            this.renderBaseDXF.Children.Add(lineGraphic);
+                            break;
+                        }
+                    case DxfEntityType.Arc:
+                        {
+                            DxfArc arcDxf = (DxfArc)entity;
+                            // arc in dxf is counterclockwise
+                            Arc arcGraphic = new Arc();
+                            double correctedXCenter = arcDxf.Center.X - minX;
+                            double correctedYCenter = arcDxf.Center.Y - minY;
+                            // ayyy lmao that's a meme but it works. I have no idea why it worked, but it... uhh, it will backfire at some case
+                            arcGraphic.StartAngle = UserControlDXFviewer.ConvertToRadians((arcDxf.EndAngle));
+                            arcGraphic.EndAngle = UserControlDXFviewer.ConvertToRadians((arcDxf.StartAngle));
+                            arcGraphic.Radius = arcDxf.Radius;
+                            arcGraphic.Center = new Point(correctedXCenter, correctedYCenter);
+                            arcGraphic.Stroke = Brushes.Black;
+                            arcGraphic.StrokeThickness = 1 / usedScale;
+                            arcGraphic.RenderTransform = groupOperation;
+                            this.renderBaseDXF.Children.Add(arcGraphic);
+
+                            break;
+                        }
+                }
+            }
+        }
+
+        /// <summary>
         /// returns bounding box of DXF file: [minX,minY, maxX,maxY]
         /// </summary>
         /// <returns></returns>
@@ -79,7 +158,7 @@ namespace WpfDXFViewer
             return currentBBox;
         }
         /// <summary>
-        /// NOT WORKING
+        /// NOT WORKING, returns INFINITY
         /// </summary>
         public void fitGraphicalEntitiesToView()
         {
@@ -99,59 +178,9 @@ namespace WpfDXFViewer
         }
         public void processDxfFile(String inFilePath)
         {
-            this.renderBaseDXF.Children.Clear();
             dxfFile = DxfFile.Load(inFilePath);
             currentBBox = dxfFile.GetBoundingBox();
-            List<Double> boundBox = getActiveBoundBoxValues();
-            double minX = boundBox[0];
-            double minY = boundBox[1];
-
-            double maxX = boundBox[2];
-            double maxY = boundBox[3];
-
-            double scaleX = this.ActualWidth / Math.Abs(minX - maxX);
-            double scaleY = this.ActualHeight / Math.Abs(minY - maxY);
-            double usedScale = scaleX < scaleY ? scaleX : scaleY;
-
-
-            foreach (DxfEntity entity in dxfFile.Entities)
-            {
-                DxfColor entityColor = entity.Color;
-
-                switch (entity.EntityType)
-                {
-                    case DxfEntityType.Line:
-                        {
-                            DxfLine lineDxf = (DxfLine)entity;
-                            Line lineGraphic = new Line();
-                            lineGraphic.X1 = lineDxf.P1.X-minX;
-                            lineGraphic.Y1 = lineDxf.P1.Y-minY;
-                            lineGraphic.X2 = lineDxf.P2.X-minX;
-                            lineGraphic.Y2 = lineDxf.P2.Y-minY;
-                            lineGraphic.Stroke = Brushes.Black;
-                            this.renderBaseDXF.Children.Add(lineGraphic);
-                            break;
-                        }
-                    case DxfEntityType.Arc:
-                        {
-                            DxfArc arcDxf = (DxfArc)entity;
-                            // arc in dxf is counterclockwise
-                            Arc arcGraphic = new Arc();
-                            double correctedXCenter = arcDxf.Center.X - minX;
-                            double correctedYCenter = arcDxf.Center.Y - minY;
-                            // ayyy lmao that's a meme but it works. I have no idea why it worked, but it... uhh, it will backfire at some case
-                            arcGraphic.StartAngle = UserControlDXFviewer.ConvertToRadians( (arcDxf.EndAngle) );
-                            arcGraphic.EndAngle = UserControlDXFviewer.ConvertToRadians( (arcDxf.StartAngle ) );
-                            arcGraphic.Radius = arcDxf.Radius;
-                            arcGraphic.Center = new Point(correctedXCenter, correctedYCenter);
-                            
-                            arcGraphic.Stroke = Brushes.Black;
-                            this.renderBaseDXF.Children.Add(arcGraphic);
-
-                            break;
-                        }
-                }
-            }
+            
             
         }
     }
