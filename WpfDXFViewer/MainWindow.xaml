@@ -8,9 +8,16 @@
         Title="MainWindow" Height="600" Width="800" ResizeMode="NoResize">
     <Grid Margin="3">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="1*"></ColumnDefinition>
+            <!-- Main control column -->
+            <ColumnDefinition Width="1*"></ColumnDefinition> 
+            <!-- dxf bound box labels -->
             <ColumnDefinition Width="Auto"></ColumnDefinition>
             <ColumnDefinition Width="Auto"></ColumnDefinition>
+            <!-- mirror checkbox -->
+            <ColumnDefinition Width="Auto"></ColumnDefinition>
+            <!-- rotate fld -->
+            
+            <!-- Render btn column -->
             <ColumnDefinition Width="Auto"></ColumnDefinition>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
@@ -18,10 +25,12 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-        <local:UserControlDXFviewer Grid.Row="0" Grid.ColumnSpan="4" Margin="2" x:Name="DXFrenderPlane"></local:UserControlDXFviewer>
-        <TextBox Name="PathToDXF" Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="3"></TextBox>
-        <Button Name="RenderDXF" Content="Render" Grid.Column="3" Grid.Row="1" Click="RenderDXF_Click"></Button>
+        <local:UserControlDXFviewer Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="5" Margin="2" x:Name="DXFrenderPlane"></local:UserControlDXFviewer>
+        <TextBox Name="PathToDXF" Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="4"></TextBox>
         <Label Name="LowerCoordBoundBox" Grid.Column="1" Grid.Row="2" Content="_"/>
         <Label Name="UpperCoordBoundBox" Grid.Column="2" Grid.Row="2" Content="_"/>
+        <CheckBox Name="MirrorCheckbox" Grid.Column="3" Grid.Row="2" Content="Mirror" VerticalAlignment="Center" Checked="MirrorCheckbox_Checked" Unchecked="MirrorCheckbox_Unchecked"/>
+        <Button Name="RenderDXF" Content="Render" Grid.Column="4" Grid.Row="1" Click="RenderDXF_Click"></Button>
+        
     </Grid>
 </Window>

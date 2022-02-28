@@ -32,7 +32,7 @@ namespace WpfDXFViewer
                 if (String.IsNullOrEmpty(this.PathToDXF.Text) == false)
                 {
                     this.DXFrenderPlane.processDxfFile(this.PathToDXF.Text);
-                    this.DXFrenderPlane.renderCurrentlyProcessedFile();
+                    this.DXFrenderPlane.renderCurrentlyProcessedFile(MirrorCheckbox.IsChecked.GetValueOrDefault(false));
                     List<Double> boundValues = this.DXFrenderPlane.getActiveBoundBoxValues();
                     LowerCoordBoundBox.Content = boundValues[0].ToString("0.####") + ";" + boundValues[1].ToString("0.####");
                     UpperCoordBoundBox.Content = boundValues[2].ToString("0.####") + ";" + boundValues[3].ToString("0.####");
@@ -42,6 +42,19 @@ namespace WpfDXFViewer
             {
                 MessageBox.Show(e2.Message);
             }
+        }
+        private void handleCheckboxChanged()
+        {
+            this.DXFrenderPlane.renderCurrentlyProcessedFile(MirrorCheckbox.IsChecked.GetValueOrDefault(false));
+        }
+        private void MirrorCheckbox_Checked(object sender, RoutedEventArgs e)
+        {
+            handleCheckboxChanged();
+        }
+
+        private void MirrorCheckbox_Unchecked(object sender, RoutedEventArgs e)
+        {
+            handleCheckboxChanged();
         }
     }
 }

@@ -32,7 +32,7 @@ namespace WpfDXFViewer
         /// <summary>
         /// CALL THIS AFTER you have parsed DXF file!
         /// </summary>
-        internal void renderCurrentlyProcessedFile()
+        internal void renderCurrentlyProcessedFile(bool isMirrorring)
         {
             if (dxfFile.Entities.Count == 0)
             {
@@ -50,15 +50,23 @@ namespace WpfDXFViewer
             double scaleX = this.ActualWidth / W;
             double scaleY = this.ActualHeight / H;
             double usedScale = W > H ? scaleX : scaleY;
+            double usedScaleW = usedScale; double usedScaleH = usedScale;
             double usedCenterX = W / 2;
             double usedCenterY = H / 2;
-            double graphPlaneCenterX = this.renderBaseDXF.ActualWidth / 2;
+            if (isMirrorring)
+            {
+                usedScaleW *= -1;
+            }
+                    double graphPlaneCenterX = this.renderBaseDXF.ActualWidth / 2;
             double graphPlaneCenterY = this.renderBaseDXF.ActualHeight / 2;
+            
             // first - rotate, then - scale, after it - translate
-            // mirroring may be after rotation or translation.
+            // mirroring may be after rotation or translation. But... no dedicated mirror transform in WPF?
             // potentially mirroring may be achieved together with scaling, by setting a negative sign
-            ScaleTransform scaleOperation = new ScaleTransform(usedScale, usedScale, usedCenterX, usedCenterY);
+            // Mirroring should not affect bound box, it is performed by center of figure
+            ScaleTransform scaleOperation = new ScaleTransform(usedScaleW, usedScaleH, usedCenterX, usedCenterY);
             TranslateTransform translocateOperation = new TranslateTransform(graphPlaneCenterX-usedCenterX,graphPlaneCenterY-usedCenterY);
+            
             TransformGroup groupOperation = new TransformGroup();
             groupOperation.Children.Add(scaleOperation);
             groupOperation.Children.Add(translocateOperation);
