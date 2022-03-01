@@ -115,9 +115,120 @@ namespace WpfDXFViewer
                 }
             }
         }
+        /// <summary>
+        /// returns bounding box of DXF file: [minX,minY, maxX,maxY]
+        /// with rotation applied
+        /// </summary>
+        /// <param name="inAngle">rotation angle in degrees</param>
+        /// <returns></returns>
+        public List<Double> getActiveBoundBoxValuesWithRotation(double inAngle)
+        {
+            List<Double> boundBox = getActiveBoundBoxValues();
+            double assumedRotationCenterX = (boundBox[0] + boundBox[2]) / 2;
+            double assumedRotationCenterY = (boundBox[1] + boundBox[3]) / 2;
+            if ((inAngle == 0)||(inAngle==360)) {
+                return boundBox;
+            } else {
+                Matrix rotationMatrix = new Matrix();
+                rotationMatrix.SetIdentity();
+                rotationMatrix.RotateAt(inAngle, assumedRotationCenterX, assumedRotationCenterY);
+                boundBox[0] = Double.NaN; boundBox[1] = Double.NaN;
+                boundBox[2] = Double.NaN; boundBox[3] = Double.NaN;
+                foreach (var itemEntity in dxfFile.Entities)
+                {
+                    switch (itemEntity.EntityType)
+                    {
+                        case DxfEntityType.Line:
+                            {
+                                // calculate bound box for rotated line
+                                Point P1Line = new Point((itemEntity as DxfLine).P1.X, (itemEntity as DxfLine).P1.Y);
+                                Point P2Line = new Point((itemEntity as DxfLine).P2.X, (itemEntity as DxfLine).P2.Y);
+                                Point P1LineRotated = rotationMatrix.Transform(P1Line);
+                                Point P2LineRotated = rotationMatrix.Transform(P2Line);
+                                if (Double.IsNaN(boundBox[0]) && Double.IsNaN(boundBox[1]) && Double.IsNaN(boundBox[2]) && Double.IsNaN(boundBox[3]))
+                                {
+                                    if (P1LineRotated.X < P2LineRotated.X)
+                                    {
+                                        boundBox[0] = P1LineRotated.X;
+                                        boundBox[2] = P2LineRotated.X;
+                                    }
+                                    else
+                                    {
+                                        boundBox[2] = P1LineRotated.X;
+                                        boundBox[0] = P2LineRotated.X;
+                                    }
+                                    if (P1LineRotated.Y < P2LineRotated.Y)
+                                    {
+                                        boundBox[0] = P1LineRotated.Y;
+                                        boundBox[2] = P2LineRotated.Y;
+                                    }
+                                    else
+                                    {
+                                        boundBox[2] = P1LineRotated.Y;
+                                        boundBox[0] = P2LineRotated.Y;
+                                    }
+                                } else {
+                                    if (P1LineRotated.X < boundBox[0])  {
+                                        boundBox[0] = P1LineRotated.X;
+                                    }
+                                    if (P1LineRotated.X>boundBox[2])
+                                    {
+                                        boundBox[2] = P1LineRotated.X;
+                                    }
+                                    if (P1LineRotated.Y < boundBox[1])
+                                    {
+                                        boundBox[1] = P1LineRotated.Y;
+                                    }
+                                    if (P1LineRotated.Y > boundBox[3])
+                                    {
+                                        boundBox[3] = P1LineRotated.Y;
+                                    }
+                                    // ===============================
+                                    if (P2LineRotated.X < boundBox[0])
+                                    {
+                                        boundBox[0] = P2LineRotated.X;
+                                    }
+                                    if (P2LineRotated.X > boundBox[2])
+                                    {
+                                        boundBox[2] = P2LineRotated.X;
+                                    }
+                                    if (P2LineRotated.Y < boundBox[1])
+                                    {
+                                        boundBox[1] = P2LineRotated.Y;
+                                    }
+                                    if (P2LineRotated.Y > boundBox[3])
+                                    {
+                                        boundBox[3] = P2LineRotated.Y;
+                                    }
+
+                                }
+                                break;
+                            }
+                        case DxfEntityType.Arc:
+                            {
+                                double centerX = (itemEntity as DxfArc).Center.X;
+                                double centerY = (itemEntity as DxfArc).Center.Y;
+                                double radiusArc = (itemEntity as DxfArc).Radius;
+                                // angle(s) of arc is kept during rotation, center may move, together with start and end points
+                                // regarding angles. They are measured relatively to horizontal direction, so they may be ... 
+                                // new angle = old angle+rotation angle
+                                // I checked this in QCAD, it should work. Geometrically it makes sense
+                                double newStartAngle = ((itemEntity as DxfArc).StartAngle + inAngle) % 360;
+                                double endStartAngle = ((itemEntity as DxfArc).EndAngle + inAngle) % 360;
+                                
+
+                                break; 
+                            }
+                    }
+                }
+                return boundBox;
+            }
+
+        }
 
         /// <summary>
         /// returns bounding box of DXF file: [minX,minY, maxX,maxY]
+        /// just a bound box of dxf file, no rotation
         /// </summary>
         /// <returns></returns>
         public List<Double> getActiveBoundBoxValues()
@@ -137,6 +248,7 @@ namespace WpfDXFViewer
         }
         /// <summary>
         /// returns bounding box of currently drawn figurine: [minX,minY, maxX,maxY]
+        /// DOES NOT WORK, returns infinity
         /// </summary>
         public List<Double> getGeometricalBoundsOfGraphicalEntities()
         {
