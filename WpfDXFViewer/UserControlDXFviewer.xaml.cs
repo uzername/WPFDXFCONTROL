@@ -206,17 +206,106 @@ namespace WpfDXFViewer
                             }
                         case DxfEntityType.Arc:
                             {
+                                double findNearestStraightAngle(double inAngle2)
+                                {
+                                    double retVal = 0;
+                                    if ((inAngle2 >=0 ) && (inAngle2 < 90))         {
+                                        retVal = 90;
+                                    } else if ((inAngle2 >=90) && (inAngle2<180))   {
+                                        retVal = 180;
+                                    } else if ((inAngle2>=180)&&(inAngle2<270))     {
+                                        retVal = 270;
+                                    } else if ((inAngle2 >= 270) && (inAngle2 < 360))  {
+                                        retVal = 360;
+                                    } else if ((inAngle2 >= 360) && (inAngle2 < 450))  {
+                                        retVal = 450;
+                                    } else if ((inAngle2 >= 450) && (inAngle2 < 540))  {
+                                        retVal = 540;
+                                    } else if ((inAngle2 >= 540) && (inAngle2 < 630))  {
+                                        retVal = 630;
+                                    } else if ((inAngle2 >= 630) && (inAngle2 < 720))  {
+                                        retVal = 720;
+                                    }
+                                        return retVal;
+                                }
                                 double centerX = (itemEntity as DxfArc).Center.X;
                                 double centerY = (itemEntity as DxfArc).Center.Y;
+                                // rotate center of Arc
+                                Point centerNew = rotationMatrix.Transform(new Point(centerX, centerY));
                                 double radiusArc = (itemEntity as DxfArc).Radius;
                                 // angle(s) of arc is kept during rotation, center may move, together with start and end points
                                 // regarding angles. They are measured relatively to horizontal direction, so they may be ... 
                                 // new angle = old angle+rotation angle
                                 // I checked this in QCAD, it should work. Geometrically it makes sense
+                                // ALSO. in DXF arc is rotated counterclockwise
                                 double newStartAngle = ((itemEntity as DxfArc).StartAngle + inAngle) % 360;
-                                double endStartAngle = ((itemEntity as DxfArc).EndAngle + inAngle) % 360;
-                                
-
+                                double newEndAngle = ((itemEntity as DxfArc).EndAngle + inAngle) % 360;
+                                if (newEndAngle < newStartAngle)
+                                {
+                                    // arc may be intersecting zero horizontal
+                                    newEndAngle += 360;
+                                }
+                                List<Point> valuablePoints = new List<Point>();
+                                Point startPoint = new Point();
+                                startPoint.X = centerNew.X + Math.Cos(ConvertToRadians(newStartAngle)) * radiusArc;
+                                startPoint.Y = centerNew.Y + Math.Sin(ConvertToRadians(newStartAngle)) * radiusArc;
+                                valuablePoints.Add(startPoint);
+                                double iteratorAngle = findNearestStraightAngle(newStartAngle);
+                                while (iteratorAngle < newEndAngle)
+                                {
+                                    Point valuablePoint = new Point();
+                                    valuablePoint.X = centerNew.X + Math.Cos(ConvertToRadians(iteratorAngle)) * radiusArc;
+                                    valuablePoint.Y = centerNew.Y + Math.Sin(ConvertToRadians(iteratorAngle)) * radiusArc;
+                                    valuablePoints.Add(valuablePoint);
+                                    iteratorAngle += 90;
+                                }
+                                Point endPoint = new Point();
+                                endPoint.X = centerNew.X + Math.Cos(ConvertToRadians(newEndAngle)) * radiusArc;
+                                endPoint.Y = centerNew.Y + Math.Sin(ConvertToRadians(newEndAngle)) * radiusArc;
+                                valuablePoints.Add(endPoint);
+                                // now, let's get the ACTUAL bound box of transformed arc
+                                List<Double> currentBBoxArc = new List<double>(new double[] { Double.NaN, Double.NaN, Double.NaN, Double.NaN });
+                                foreach (var valuablePointArc in valuablePoints)
+                                {
+                                    if (Double.IsNaN(currentBBoxArc[0]) || valuablePointArc.X < currentBBoxArc[0])   {
+                                        currentBBoxArc[0] = valuablePointArc.X;
+                                    } 
+                                    if (Double.IsNaN(currentBBoxArc[1]) || valuablePointArc.Y < currentBBoxArc[1])   {
+                                        currentBBoxArc[1] = valuablePointArc.Y;
+                                    }
+                                    if (Double.IsNaN(currentBBoxArc[2]) || valuablePointArc.X > currentBBoxArc[2])   {
+                                        currentBBoxArc[2] = valuablePointArc.X;
+                                    }
+                                    if (Double.IsNaN(currentBBoxArc[3]) || valuablePointArc.Y > currentBBoxArc[3])
+                                    {
+                                        currentBBoxArc[3] = valuablePointArc.Y;
+                                    }
+                                }
+                                // now, merge arc bbox with general bbox
+                                if (Double.IsNaN(boundBox[0]) && Double.IsNaN(boundBox[1]) && Double.IsNaN(boundBox[2]) && Double.IsNaN(boundBox[3]))
+                                { //arc was first
+                                    boundBox[0] = currentBBoxArc[0];
+                                    boundBox[1] = currentBBoxArc[1];
+                                    boundBox[2] = currentBBoxArc[2];
+                                    boundBox[3] = currentBBoxArc[3];
+                                } else
+                                {
+                                   if (boundBox[0] > currentBBoxArc[0])  {
+                                        boundBox[0] = currentBBoxArc[0];
+                                   }
+                                    if (boundBox[1] > currentBBoxArc[1])
+                                    {
+                                        boundBox[1] = currentBBoxArc[1];
+                                    }
+                                    if (boundBox[2] < currentBBoxArc[2])
+                                    {
+                                        boundBox[2] = currentBBoxArc[2];
+                                    }
+                                    if (boundBox[3] < currentBBoxArc[3])
+                                    {
+                                        boundBox[3] = currentBBoxArc[3];
+                                    }
+                                }
                                 break; 
                             }
                     }
