@@ -104,15 +104,28 @@ namespace WpfDXFViewer
             lGraphic4.Stroke = Brushes.Cyan;
             lGraphic4.StrokeThickness = 1 / usedScale;
             lGraphic4.RenderTransform = groupOperation1;
+
+            Line lcntr1 = new Line();
+            lcntr1.X1 = (usedCenterX - 2)-minX; lcntr1.X2 = (usedCenterX + 2) - minX;
+            lcntr1.Y1 = usedCenterY - minY; lcntr1.Y2 = usedCenterY - minY;
+            lcntr1.Stroke = Brushes.DarkGreen;
+            lcntr1.StrokeThickness = 1 / usedScale;
+            lcntr1.RenderTransform = groupOperation1;
+
+            Line lcntr2 = new Line();
+            lcntr2.X1 = (usedCenterX ) - minX; lcntr2.X2 = (usedCenterX) - minX;
+            lcntr2.Y1 = usedCenterY-2 - minY; lcntr2.Y2 = usedCenterY +2 - minY;
+            lcntr2.Stroke = Brushes.DarkGreen;
+            lcntr2.StrokeThickness = 1 / usedScale;
+            lcntr2.RenderTransform = groupOperation1;
+
+            this.renderBaseDXF.Children.Add(lcntr1);
+            this.renderBaseDXF.Children.Add(lcntr2);
             this.renderBaseDXF.Children.Add(lGraphic1);
             this.renderBaseDXF.Children.Add(lGraphic2);
             this.renderBaseDXF.Children.Add(lGraphic3);
             this.renderBaseDXF.Children.Add(lGraphic4);
             /// ======
-
-            Matrix rotationMatrix = new Matrix();
-            rotationMatrix.SetIdentity();
-            rotationMatrix.RotateAt(rotationAngleDegrees, usedCenterX, usedCenterY);
 
             foreach (DxfEntity entity in dxfFile.Entities)
             {
