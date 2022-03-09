@@ -16,7 +16,7 @@
             <!-- mirror checkbox -->
             <ColumnDefinition Width="Auto"></ColumnDefinition>
             <!-- rotate fld -->
-            
+            <ColumnDefinition Width="Auto"></ColumnDefinition>
             <!-- Render btn column -->
             <ColumnDefinition Width="Auto"></ColumnDefinition>
         </Grid.ColumnDefinitions>
@@ -25,12 +25,13 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-        <local:UserControlDXFviewer Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="5" Margin="2" x:Name="DXFrenderPlane"></local:UserControlDXFviewer>
-        <TextBox Name="PathToDXF" Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="4"></TextBox>
+        <local:UserControlDXFviewer Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="6" Margin="2" x:Name="DXFrenderPlane"></local:UserControlDXFviewer>
+        <TextBox Name="PathToDXF" Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="5"></TextBox>
         <Label Name="LowerCoordBoundBox" Grid.Column="1" Grid.Row="2" Content="_"/>
         <Label Name="UpperCoordBoundBox" Grid.Column="2" Grid.Row="2" Content="_"/>
         <CheckBox Name="MirrorCheckbox" Grid.Column="3" Grid.Row="2" Content="Mirror" VerticalAlignment="Center" Checked="MirrorCheckbox_Checked" Unchecked="MirrorCheckbox_Unchecked"/>
-        <Button Name="RenderDXF" Content="Render" Grid.Column="4" Grid.Row="1" Click="RenderDXF_Click"></Button>
+        <TextBox Name="RotationAngle" Grid.Column="4" Grid.Row="2" Width="50" Margin="3" LostFocus="RotationAngle_LostFocus"  />
+        <Button Name="RenderDXF" Content="Render" Grid.Column="5" Grid.Row="1" Click="RenderDXF_Click"></Button>
         
     </Grid>
 </Window>

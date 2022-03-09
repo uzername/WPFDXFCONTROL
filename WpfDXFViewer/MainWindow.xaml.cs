@@ -31,12 +31,17 @@ namespace WpfDXFViewer
             {
                 if (String.IsNullOrEmpty(this.PathToDXF.Text) == false)
                 {
+                    String rotationAngleRaw = this.RotationAngle.Text;
+                    rotationAngleRaw = String.IsNullOrEmpty(rotationAngleRaw) ? "0" : rotationAngleRaw ;
+                    double rotationAngleDegrees = 0.0;
+                    Double.TryParse(rotationAngleRaw, out rotationAngleDegrees);
+
                     this.DXFrenderPlane.processDxfFile(this.PathToDXF.Text);
-                    this.DXFrenderPlane.renderCurrentlyProcessedFile(MirrorCheckbox.IsChecked.GetValueOrDefault(false));
-                    List<Double> boundValues = this.DXFrenderPlane.getActiveBoundBoxValues();
-                    LowerCoordBoundBox.Content = boundValues[0].ToString("0.####") + ";" + boundValues[1].ToString("0.####");
-                    UpperCoordBoundBox.Content = boundValues[2].ToString("0.####") + ";" + boundValues[3].ToString("0.####");
-                    
+                    List<Double> boundValues2 = this.DXFrenderPlane.renderCurrentlyProcessedFile(MirrorCheckbox.IsChecked.GetValueOrDefault(false), rotationAngleDegrees);
+                    List<Double> boundValues = this.DXFrenderPlane.getActiveBoundBoxValues();                    
+                    LowerCoordBoundBox.Content = boundValues[0].ToString("0.####") + ";" + boundValues[1].ToString("0.####")+"||"+ boundValues[2].ToString("0.####") + ";" + boundValues[3].ToString("0.####");
+                    UpperCoordBoundBox.Content = boundValues2[0].ToString("0.####") + ";" + boundValues2[1].ToString("0.####") + "||" + boundValues2[2].ToString("0.####") + ";" + boundValues2[3].ToString("0.####");
+
                 }
             } catch (Exception e2)
             {
@@ -45,7 +50,12 @@ namespace WpfDXFViewer
         }
         private void handleCheckboxChanged()
         {
-            this.DXFrenderPlane.renderCurrentlyProcessedFile(MirrorCheckbox.IsChecked.GetValueOrDefault(false));
+            String rotationAngleRaw = this.RotationAngle.Text;
+            rotationAngleRaw = String.IsNullOrEmpty(rotationAngleRaw) ? "0" : rotationAngleRaw;
+            double rotationAngleDegrees = 0.0;
+            Double.TryParse(rotationAngleRaw, out rotationAngleDegrees);
+            List<Double> boundValues2 = this.DXFrenderPlane.renderCurrentlyProcessedFile(MirrorCheckbox.IsChecked.GetValueOrDefault(false), rotationAngleDegrees);
+            UpperCoordBoundBox.Content = boundValues2[0].ToString("0.####") + ";" + boundValues2[1].ToString("0.####") + "||" + boundValues2[2].ToString("0.####") + ";" + boundValues2[3].ToString("0.####");
         }
         private void MirrorCheckbox_Checked(object sender, RoutedEventArgs e)
         {
@@ -53,6 +63,16 @@ namespace WpfDXFViewer
         }
 
         private void MirrorCheckbox_Unchecked(object sender, RoutedEventArgs e)
+        {
+            handleCheckboxChanged();
+        }
+
+        private void RotationAngle_KeyUp(object sender, KeyEventArgs e)
+        {
+
+        }
+
+        private void RotationAngle_LostFocus(object sender, RoutedEventArgs e)
         {
             handleCheckboxChanged();
         }

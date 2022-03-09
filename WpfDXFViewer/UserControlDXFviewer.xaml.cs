@@ -32,46 +32,88 @@ namespace WpfDXFViewer
         /// <summary>
         /// CALL THIS AFTER you have parsed DXF file!
         /// </summary>
-        internal void renderCurrentlyProcessedFile(bool isMirrorring)
+        internal List<double> renderCurrentlyProcessedFile(bool isMirrorring, double rotationAngleDegrees)
         {
+            List<Double> boundBox = new List<double>(new double[] { 0, 0, 0, 0 });
             if (dxfFile.Entities.Count == 0)
             {
                 // parse dxf file first
-                return;
+                return boundBox;
             }
             // calculation of appropriate scale. TODO - move to subroutine and include rotation
-            List<Double> boundBox = getActiveBoundBoxValues();
+            
+            boundBox = getActiveBoundBoxValuesWithRotation(rotationAngleDegrees);
             double minX = boundBox[0];
             double minY = boundBox[1];
             double maxX = boundBox[2];
             double maxY = boundBox[3];
             double W = Math.Abs(minX - maxX);
             double H = Math.Abs(minY - maxY);
-            double scaleX = this.ActualWidth / W;
-            double scaleY = this.ActualHeight / H;
-            double usedScale = W > H ? scaleX : scaleY;
+            double scaleX = this.renderBaseDXF.ActualWidth / W;
+            double scaleY = this.renderBaseDXF.ActualHeight / H;
+            double usedScale = scaleX < scaleY ? scaleX : scaleY;
             double usedScaleW = usedScale; double usedScaleH = usedScale;
-            double usedCenterX = W / 2;
-            double usedCenterY = H / 2;
+            double usedCenterX = (maxX-minX) / 2;
+            double usedCenterY = (maxY-minY) / 2;
             if (isMirrorring)
             {
                 usedScaleW *= -1;
             }
-                    double graphPlaneCenterX = this.renderBaseDXF.ActualWidth / 2;
+            double graphPlaneCenterX = this.renderBaseDXF.ActualWidth / 2;
             double graphPlaneCenterY = this.renderBaseDXF.ActualHeight / 2;
-            
+
             // first - rotate, then - scale, after it - translate
             // mirroring may be after rotation or translation. But... no dedicated mirror transform in WPF?
             // potentially mirroring may be achieved together with scaling, by setting a negative sign
             // Mirroring should not affect bound box, it is performed by center of figure
-            ScaleTransform scaleOperation = new ScaleTransform(usedScaleW, usedScaleH, usedCenterX, usedCenterY);
-            TranslateTransform translocateOperation = new TranslateTransform(graphPlaneCenterX-usedCenterX,graphPlaneCenterY-usedCenterY);
-            
             TransformGroup groupOperation = new TransformGroup();
+            if (rotationAngleDegrees % 360 != 0) {
+                RotateTransform rotateOperation = new RotateTransform(rotationAngleDegrees, usedCenterX, usedCenterY);
+                groupOperation.Children.Add(rotateOperation);
+            }
+            ScaleTransform scaleOperation = new ScaleTransform(usedScaleW, usedScaleH, usedCenterX, usedCenterY);
+            TranslateTransform translocateOperation = new TranslateTransform(graphPlaneCenterX-usedCenterX,graphPlaneCenterY-usedCenterY);            
             groupOperation.Children.Add(scaleOperation);
             groupOperation.Children.Add(translocateOperation);
-
             this.renderBaseDXF.Children.Clear();
+            /// ====== render bound box
+            TransformGroup groupOperation1 = new TransformGroup();
+            groupOperation1.Children.Add(scaleOperation);
+            groupOperation1.Children.Add(translocateOperation);
+            Line lGraphic1 = new Line();
+            lGraphic1.X1 = 0; lGraphic1.Y1 = 0;
+            lGraphic1.X2 = 0; lGraphic1.Y2 = maxY-minY;
+            lGraphic1.Stroke = Brushes.Red;
+            lGraphic1.StrokeThickness = 1 / usedScale;
+            lGraphic1.RenderTransform = groupOperation1;
+            Line lGraphic2 = new Line();
+            lGraphic2.X1 = maxX-minX; lGraphic2.Y1 = 0;
+            lGraphic2.X2 = maxX-minX; lGraphic2.Y2 = maxY-minY;
+            lGraphic2.Stroke = Brushes.Green;
+            lGraphic2.StrokeThickness = 1 / usedScale;
+            lGraphic2.RenderTransform = groupOperation1;
+            Line lGraphic3 = new Line();
+            lGraphic3.X1 = 0; lGraphic3.Y1 = 0;
+            lGraphic3.X2 = maxX- minX; lGraphic3.Y2 = 0;
+            lGraphic3.Stroke = Brushes.Blue;
+            lGraphic3.StrokeThickness = 1 / usedScale;
+            lGraphic3.RenderTransform = groupOperation1;
+            Line lGraphic4 = new Line();
+            lGraphic4.X1 = 0; lGraphic4.Y1 = maxY-minY;
+            lGraphic4.X2 = maxX- minX; lGraphic4.Y2 = maxY-minY;            
+            lGraphic4.Stroke = Brushes.Cyan;
+            lGraphic4.StrokeThickness = 1 / usedScale;
+            lGraphic4.RenderTransform = groupOperation1;
+            this.renderBaseDXF.Children.Add(lGraphic1);
+            this.renderBaseDXF.Children.Add(lGraphic2);
+            this.renderBaseDXF.Children.Add(lGraphic3);
+            this.renderBaseDXF.Children.Add(lGraphic4);
+            /// ======
+
+            Matrix rotationMatrix = new Matrix();
+            rotationMatrix.SetIdentity();
+            rotationMatrix.RotateAt(rotationAngleDegrees, usedCenterX, usedCenterY);
+
             foreach (DxfEntity entity in dxfFile.Entities)
             {
                 DxfColor entityColor = entity.Color;
@@ -82,6 +124,7 @@ namespace WpfDXFViewer
                         {
                             DxfLine lineDxf = (DxfLine)entity;
                             Line lineGraphic = new Line();
+                            
                             lineGraphic.X1 = lineDxf.P1.X - minX;
                             lineGraphic.Y1 = lineDxf.P1.Y - minY;
                             lineGraphic.X2 = lineDxf.P2.X - minX;
@@ -114,6 +157,7 @@ namespace WpfDXFViewer
                         }
                 }
             }
+            return boundBox;
         }
         /// <summary>
         /// returns bounding box of DXF file: [minX,minY, maxX,maxY]
@@ -129,6 +173,7 @@ namespace WpfDXFViewer
             if ((inAngle == 0)||(inAngle==360)) {
                 return boundBox;
             } else {
+                // rotation matrix is counter clockwise?
                 Matrix rotationMatrix = new Matrix();
                 rotationMatrix.SetIdentity();
                 rotationMatrix.RotateAt(inAngle, assumedRotationCenterX, assumedRotationCenterY);
@@ -159,13 +204,13 @@ namespace WpfDXFViewer
                                     }
                                     if (P1LineRotated.Y < P2LineRotated.Y)
                                     {
-                                        boundBox[0] = P1LineRotated.Y;
-                                        boundBox[2] = P2LineRotated.Y;
+                                        boundBox[1] = P1LineRotated.Y;
+                                        boundBox[3] = P2LineRotated.Y;
                                     }
                                     else
                                     {
-                                        boundBox[2] = P1LineRotated.Y;
-                                        boundBox[0] = P2LineRotated.Y;
+                                        boundBox[3] = P1LineRotated.Y;
+                                        boundBox[1] = P2LineRotated.Y;
                                     }
                                 } else {
                                     if (P1LineRotated.X < boundBox[0])  {
