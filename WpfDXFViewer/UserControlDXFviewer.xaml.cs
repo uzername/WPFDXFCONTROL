@@ -35,7 +35,7 @@ namespace WpfDXFViewer
         internal List<double> renderCurrentlyProcessedFile(bool isMirrorring, double rotationAngleDegrees)
         {
             List<Double> boundBox = new List<double>(new double[] { 0, 0, 0, 0 });
-            if (dxfFile.Entities.Count == 0)
+            if ((dxfFile==null)||(dxfFile.Entities.Count == 0))
             {
                 // parse dxf file first
                 return boundBox;
@@ -53,6 +53,7 @@ namespace WpfDXFViewer
             double scaleY = this.renderBaseDXF.ActualHeight / H;
             double usedScale = scaleX < scaleY ? scaleX : scaleY;
             double usedScaleW = usedScale; double usedScaleH = usedScale;
+            // center on the figure with original scale
             double usedCenterX = (maxX-minX) / 2;
             double usedCenterY = (maxY-minY) / 2;
             if (isMirrorring)
@@ -67,14 +68,19 @@ namespace WpfDXFViewer
             // potentially mirroring may be achieved together with scaling, by setting a negative sign
             // Mirroring should not affect bound box, it is performed by center of figure
             TransformGroup groupOperation = new TransformGroup();
-            if (rotationAngleDegrees % 360 != 0) {
+            TranslateTransform translocateOperation2 = new TranslateTransform(-minX * usedScaleW, -minY * usedScaleH);
+            ScaleTransform scaleOperation = new ScaleTransform(usedScaleW, usedScaleH, usedCenterX, usedCenterY);
+            TranslateTransform translocateOperation = new TranslateTransform(graphPlaneCenterX-usedCenterX,graphPlaneCenterY-usedCenterY);
+            
+            groupOperation.Children.Add(scaleOperation);
+            groupOperation.Children.Add(translocateOperation2);
+            if (rotationAngleDegrees % 360 != 0)
+            {
                 RotateTransform rotateOperation = new RotateTransform(rotationAngleDegrees, usedCenterX, usedCenterY);
                 groupOperation.Children.Add(rotateOperation);
             }
-            ScaleTransform scaleOperation = new ScaleTransform(usedScaleW, usedScaleH, usedCenterX, usedCenterY);
-            TranslateTransform translocateOperation = new TranslateTransform(graphPlaneCenterX-usedCenterX,graphPlaneCenterY-usedCenterY);            
-            groupOperation.Children.Add(scaleOperation);
             groupOperation.Children.Add(translocateOperation);
+            
             this.renderBaseDXF.Children.Clear();
             /// ====== render bound box
             TransformGroup groupOperation1 = new TransformGroup();
@@ -106,15 +112,15 @@ namespace WpfDXFViewer
             lGraphic4.RenderTransform = groupOperation1;
 
             Line lcntr1 = new Line();
-            lcntr1.X1 = (usedCenterX - 2)-minX; lcntr1.X2 = (usedCenterX + 2) - minX;
-            lcntr1.Y1 = usedCenterY - minY; lcntr1.Y2 = usedCenterY - minY;
+            lcntr1.X1 = (usedCenterX - 2); lcntr1.X2 = (usedCenterX + 2) ;
+            lcntr1.Y1 = usedCenterY ; lcntr1.Y2 = usedCenterY ;
             lcntr1.Stroke = Brushes.DarkGreen;
             lcntr1.StrokeThickness = 1 / usedScale;
             lcntr1.RenderTransform = groupOperation1;
 
             Line lcntr2 = new Line();
-            lcntr2.X1 = (usedCenterX ) - minX; lcntr2.X2 = (usedCenterX) - minX;
-            lcntr2.Y1 = usedCenterY-2 - minY; lcntr2.Y2 = usedCenterY +2 - minY;
+            lcntr2.X1 = (usedCenterX ) ; lcntr2.X2 = (usedCenterX) ;
+            lcntr2.Y1 = usedCenterY-2 ; lcntr2.Y2 = usedCenterY +2;
             lcntr2.Stroke = Brushes.DarkGreen;
             lcntr2.StrokeThickness = 1 / usedScale;
             lcntr2.RenderTransform = groupOperation1;
@@ -138,10 +144,10 @@ namespace WpfDXFViewer
                             DxfLine lineDxf = (DxfLine)entity;
                             Line lineGraphic = new Line();
                             
-                            lineGraphic.X1 = lineDxf.P1.X - minX;
-                            lineGraphic.Y1 = lineDxf.P1.Y - minY;
-                            lineGraphic.X2 = lineDxf.P2.X - minX;
-                            lineGraphic.Y2 = lineDxf.P2.Y - minY;
+                            lineGraphic.X1 = lineDxf.P1.X;
+                            lineGraphic.Y1 = lineDxf.P1.Y;
+                            lineGraphic.X2 = lineDxf.P2.X;
+                            lineGraphic.Y2 = lineDxf.P2.Y;
                             lineGraphic.Stroke = Brushes.Black;
                             lineGraphic.StrokeThickness = 1 / usedScale;
                             lineGraphic.RenderTransform = groupOperation;
@@ -154,8 +160,8 @@ namespace WpfDXFViewer
                             DxfArc arcDxf = (DxfArc)entity;
                             // arc in dxf is counterclockwise
                             Arc arcGraphic = new Arc();
-                            double correctedXCenter = arcDxf.Center.X - minX;
-                            double correctedYCenter = arcDxf.Center.Y - minY;
+                            double correctedXCenter = arcDxf.Center.X;
+                            double correctedYCenter = arcDxf.Center.Y;
                             // ayyy lmao that's a meme but it works. I have no idea why it worked, but it... uhh, it will backfire at some case
                             arcGraphic.StartAngle = UserControlDXFviewer.ConvertToRadians((arcDxf.EndAngle));
                             arcGraphic.EndAngle = UserControlDXFviewer.ConvertToRadians((arcDxf.StartAngle));
